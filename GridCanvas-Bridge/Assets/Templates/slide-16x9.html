@@ -8,13 +8,21 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #1e1e2e; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+  /* ── プレゼンテーションラッパー ── */
+  #gcb-presentation { position: relative; display: inline-block; }
+
+  /* ── スライド表示制御 ── */
+  .gcb-slide         { display: none; }
+  .gcb-slide.active  { display: block; }
+
+  /* ── スライド本体 ── */
   #slide-root {
     position: relative;
     width: 1600px;
     height: 900px;
     background: white;
     overflow: hidden;
-    /* Grid overlay (visible in edit mode) */
   }
   #slide-root.edit-mode::before {
     content: '';
@@ -26,37 +34,171 @@
     pointer-events: none;
     z-index: 9999;
   }
-  .gcb-element {
-    position: absolute;
-    cursor: grab;
-    user-select: none;
-  }
+
+  /* ── 要素スタイル ── */
+  .gcb-element          { position: absolute; cursor: grab; user-select: none; }
   .gcb-element.dragging { cursor: grabbing; opacity: 0.8; z-index: 1000; }
   .gcb-element.selected { outline: 2px solid #6366f1; outline-offset: 2px; }
   .gcb-element.editing  { cursor: text; user-select: text; outline: 2px solid #10b981; outline-offset: 2px; }
+
+  /* ── ナビゲーションゾーン ── */
+  .gcb-nav-zone {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 30%;
+    z-index: 200;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .gcb-nav-zone:hover { background: rgba(255,255,255,0.07); }
+  #gcb-zone-prev { left: 0; }
+  #gcb-zone-next { right: 0; }
+
+  /* ── コントロール（全画面・印刷）── */
+  #gcb-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 300;
+    display: flex;
+    gap: 8px;
+  }
+  #gcb-controls button {
+    background: rgba(0,0,0,0.55);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    backdrop-filter: blur(4px);
+  }
+  #gcb-controls button:hover { background: rgba(0,0,0,0.8); }
+
+  /* ── スライドカウンター ── */
+  #gcb-counter {
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    z-index: 300;
+    color: rgba(255,255,255,0.55);
+    font-size: 12px;
+    pointer-events: none;
+    font-family: sans-serif;
+  }
+
+  /* ── 編集モード中はプレゼン UI を無効化 ── */
+  .gcb-editing .gcb-nav-zone  { pointer-events: none; }
+  .gcb-editing #gcb-controls  { display: none; }
+  .gcb-editing #gcb-counter   { display: none; }
+
+  /* ── 印刷 ── */
+  @media print {
+    body { background: white; display: block; margin: 0; }
+    #gcb-presentation { display: block; }
+    .gcb-slide { display: block !important; page-break-after: always; break-after: page; }
+    #slide-root { width: 100%; height: auto; }
+    .gcb-nav-zone, #gcb-controls, #gcb-counter { display: none !important; }
+  }
 </style>
 </head>
 <body>
-<div id="slide-root">
-  <!-- GCB_ELEMENTS_START -->
-  <div
-    id="el-001"
-    class="gcb-element flex items-center justify-center text-5xl font-bold text-gray-800"
-    data-grid-x="2" data-grid-y="8"
-    data-grid-w="20" data-grid-h="4"
-    style="left: 8.333%; top: 33.333%; width: 83.333%; height: 16.667%;"
-    contenteditable="false"
-  >スライドタイトル</div>
-  <div
-    id="el-002"
-    class="gcb-element flex items-center justify-center text-2xl text-gray-500"
-    data-grid-x="4" data-grid-y="13"
-    data-grid-w="16" data-grid-h="3"
-    style="left: 16.667%; top: 54.167%; width: 66.667%; height: 12.5%;"
-    contenteditable="false"
-  >サブタイトルテキスト</div>
-  <!-- GCB_ELEMENTS_END -->
+<div id="gcb-presentation">
+
+  <div id="gcb-slides">
+    <section class="gcb-slide active" data-index="0">
+      <div id="slide-root">
+        <!-- GCB_ELEMENTS_START -->
+        <div
+          id="el-001"
+          class="gcb-element flex items-center justify-center text-5xl font-bold text-gray-800"
+          data-grid-x="2" data-grid-y="8"
+          data-grid-w="20" data-grid-h="4"
+          style="left: 8.333%; top: 33.333%; width: 83.333%; height: 16.667%;"
+          contenteditable="false"
+        >スライドタイトル</div>
+        <div
+          id="el-002"
+          class="gcb-element flex items-center justify-center text-2xl text-gray-500"
+          data-grid-x="4" data-grid-y="13"
+          data-grid-w="16" data-grid-h="3"
+          style="left: 16.667%; top: 54.167%; width: 66.667%; height: 12.5%;"
+          contenteditable="false"
+        >サブタイトルテキスト</div>
+        <!-- GCB_ELEMENTS_END -->
+      </div>
+    </section>
+    <!-- 追加スライドはC#がここに挿入 -->
+  </div>
+
+  <!-- ナビゲーションゾーン（左30% / 右30%） -->
+  <div id="gcb-zone-prev" class="gcb-nav-zone"></div>
+  <div id="gcb-zone-next" class="gcb-nav-zone"></div>
+
+  <!-- コントロール -->
+  <div id="gcb-controls">
+    <button id="gcb-btn-fullscreen">⛶ 全画面</button>
+    <button id="gcb-btn-print">🖨 PDF印刷</button>
+  </div>
+
+  <!-- スライドカウンター -->
+  <div id="gcb-counter"></div>
+
 </div>
+
+<!-- プレゼンテーションスクリプト（ポータブル出力にも残す） -->
+<script id="gcb-present">(function () {
+  'use strict';
+
+  var currentIndex = 0;
+
+  function getSlides() { return Array.from(document.querySelectorAll('.gcb-slide')); }
+  function isEditing() { return !!document.getElementById('gcb-presentation')?.classList.contains('gcb-editing'); }
+
+  function goTo(index) {
+    if (isEditing()) return;
+    var slides = getSlides();
+    if (index < 0 || index >= slides.length) return;
+    slides[currentIndex].classList.remove('active');
+    currentIndex = index;
+    slides[currentIndex].classList.add('active');
+    var counter = document.getElementById('gcb-counter');
+    if (counter) counter.textContent = (currentIndex + 1) + ' / ' + slides.length;
+  }
+
+  window.GCBPresent = {
+    goTo: goTo,
+    next: function () { goTo(currentIndex + 1); },
+    prev: function () { goTo(currentIndex - 1); },
+    toggleFullscreen: function () {
+      if (!document.fullscreenElement) {
+        document.getElementById('gcb-presentation')?.requestFullscreen();
+      } else {
+        document.exitFullscreen?.();
+      }
+    },
+    print: function () { window.print(); },
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (isEditing()) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  { e.preventDefault(); GCBPresent.next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    { e.preventDefault(); GCBPresent.prev(); }
+  });
+
+  document.getElementById('gcb-zone-prev')?.addEventListener('click', GCBPresent.prev);
+  document.getElementById('gcb-zone-next')?.addEventListener('click', GCBPresent.next);
+  document.getElementById('gcb-btn-fullscreen')?.addEventListener('click', GCBPresent.toggleFullscreen);
+  document.getElementById('gcb-btn-print')?.addEventListener('click', GCBPresent.print);
+
+  // カウンター初期表示
+  var slides = getSlides();
+  var counter = document.getElementById('gcb-counter');
+  if (counter && slides.length > 0) counter.textContent = '1 / ' + slides.length;
+})();
+</script>
+
 <script src="../Scripts/gcb-bridge.js"></script>
 <!-- GCB_MANIFEST_START -->
 <script type="application/json" id="gcb-manifest">

@@ -157,6 +157,8 @@ const GCB = (() => {
       const root = document.getElementById('slide-root');
       if (!root) return;
       root.classList.add('edit-mode');
+      // 編集中はプレゼンナビゲーション (クリックゾーン・ボタン) を無効化
+      document.getElementById('gcb-presentation')?.classList.add('gcb-editing');
 
       document.querySelectorAll('.gcb-element').forEach((el) => {
         el.addEventListener('mousedown', onMouseDown);
