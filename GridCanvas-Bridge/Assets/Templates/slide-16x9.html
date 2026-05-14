@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCB Slide (16:9)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1e1e2e; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  #slide-root {
+    position: relative;
+    width: 1600px;
+    height: 900px;
+    background: white;
+    overflow: hidden;
+    /* Grid overlay (visible in edit mode) */
+  }
+  #slide-root.edit-mode::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(to right, rgba(99,102,241,0.15) 0, rgba(99,102,241,0.15) 1px, transparent 1px, transparent calc(100% / 24)),
+      repeating-linear-gradient(to bottom, rgba(99,102,241,0.15) 0, rgba(99,102,241,0.15) 1px, transparent 1px, transparent calc(100% / 24));
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .gcb-element {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+  }
+  .gcb-element.dragging { cursor: grabbing; opacity: 0.8; z-index: 1000; }
+  .gcb-element.selected { outline: 2px solid #6366f1; outline-offset: 2px; }
+  [contenteditable]:focus { outline: none; }
+</style>
+</head>
+<body>
+<div id="slide-root">
+  <!-- GCB_ELEMENTS_START -->
+  <div
+    id="el-001"
+    class="gcb-element flex items-center justify-center text-5xl font-bold text-gray-800"
+    data-grid-x="2" data-grid-y="8"
+    data-grid-w="20" data-grid-h="4"
+    style="left: 8.333%; top: 33.333%; width: 83.333%; height: 16.667%;"
+    contenteditable="false"
+  >スライドタイトル</div>
+  <div
+    id="el-002"
+    class="gcb-element flex items-center justify-center text-2xl text-gray-500"
+    data-grid-x="4" data-grid-y="13"
+    data-grid-w="16" data-grid-h="3"
+    style="left: 16.667%; top: 54.167%; width: 66.667%; height: 12.5%;"
+    contenteditable="false"
+  >サブタイトルテキスト</div>
+  <!-- GCB_ELEMENTS_END -->
+</div>
+<script src="../Scripts/gcb-bridge.js"></script>
+<!-- GCB_MANIFEST_START -->
+<script type="application/json" id="gcb-manifest">
+{
+  "version": "1.0",
+  "aspectRatio": "16:9",
+  "slides": [
+    {
+      "id": "slide-1",
+      "elements": [
+        {
+          "id": "el-001",
+          "type": "text",
+          "gridX": 2, "gridY": 8,
+          "gridW": 20, "gridH": 4,
+          "content": "スライドタイトル",
+          "classes": "flex items-center justify-center text-5xl font-bold text-gray-800"
+        },
+        {
+          "id": "el-002",
+          "type": "text",
+          "gridX": 4, "gridY": 13,
+          "gridW": 16, "gridH": 3,
+          "content": "サブタイトルテキスト",
+          "classes": "flex items-center justify-center text-2xl text-gray-500"
+        }
+      ]
+    }
+  ]
+}
+</script>
+<!-- GCB_MANIFEST_END -->
+</body>
+</html>
