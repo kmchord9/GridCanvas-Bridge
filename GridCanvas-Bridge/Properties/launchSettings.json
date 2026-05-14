@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GridCanvas-Bridge (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "GridCanvas-Bridge (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
