@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridCanvas Bridge — サンプルプレゼンテーション</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111827; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+  #gcb-presentation { position: relative; display: inline-block; }
+
+  .gcb-slide        { display: none; }
+  .gcb-slide.active { display: block; }
+
+  .slide-root {
+    position: relative;
+    width: 1024px;
+    height: 768px;
+    overflow: hidden;
+    background: white;
+  }
+
+  /* 要素ベース（ポータブル: ドラッグ不要） */
+  .gcb-element { position: absolute; }
+
+  /* ── ナビゲーションゾーン ── */
+  .gcb-nav-zone {
+    position: absolute; top: 0;
+    height: 100%; width: 30%;
+    z-index: 200; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .gcb-nav-zone:hover { background: rgba(255,255,255,0.06); }
+  #gcb-zone-prev { left: 0; }
+  #gcb-zone-next { right: 0; }
+
+  /* ── コントロール ── */
+  #gcb-controls {
+    position: absolute; top: 12px; right: 12px;
+    z-index: 300; display: flex; gap: 8px;
+  }
+  #gcb-controls button {
+    background: rgba(0,0,0,0.55); color: white;
+    border: none; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; backdrop-filter: blur(4px);
+  }
+  #gcb-controls button:hover { background: rgba(0,0,0,0.8); }
+
+  /* ── カウンター ── */
+  #gcb-counter {
+    position: absolute; bottom: 10px; right: 14px;
+    z-index: 300; color: rgba(255,255,255,0.5);
+    font-size: 12px; pointer-events: none; font-family: sans-serif;
+  }
+
+  /* ── 印刷 ── */
+  @media print {
+    body { background: white; display: block; margin: 0; }
+    #gcb-presentation { display: block; }
+    .gcb-slide { display: block !important; page-break-after: always; break-after: page; }
+    .slide-root { width: 100%; height: auto; box-shadow: none; }
+    .gcb-nav-zone, #gcb-controls, #gcb-counter { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="gcb-presentation">
+  <div id="gcb-slides">
+
+    <!-- ═══════════════════════════════════════════════════════
+         Slide 1 — タイトル
+         ═══════════════════════════════════════════════════════ -->
+    <section class="gcb-slide active" data-index="0">
+      <div class="slide-root" style="background: linear-gradient(150deg, #1e3a6e 0%, #0f2040 55%, #1a1035 100%);">
+
+        <!-- 左アクセントバー -->
+        <div class="gcb-element"
+             data-grid-x="0" data-grid-y="0" data-grid-w="1" data-grid-h="24"
+             style="left:0;top:0;width:4.167%;height:100%;
+                    background:linear-gradient(to bottom,#60a5fa,#818cf8,#a78bfa);"></div>
+
+        <!-- メインタイトル -->
+        <div class="gcb-element flex items-start justify-start"
+             data-grid-x="2" data-grid-y="5" data-grid-w="20" data-grid-h="7"
+             style="left:8.333%;top:20.833%;width:83.333%;height:29.167%;">
+          <span style="font-size:72px;font-weight:800;color:white;line-height:1.1;letter-spacing:-2px;">
+            GridCanvas<br>Bridge
+          </span>
+        </div>
+
+        <!-- 区切り線 -->
+        <div class="gcb-element"
+             data-grid-x="2" data-grid-y="13" data-grid-w="9" data-grid-h="1"
+             style="left:8.333%;top:54.167%;width:37.5%;height:2px;
+                    background:rgba(147,197,253,0.45);"></div>
+
+        <!-- サブタイトル -->
+        <div class="gcb-element flex items-center"
+             data-grid-x="2" data-grid-y="14" data-grid-w="20" data-grid-h="3"
+             style="left:8.333%;top:58.333%;width:83.333%;height:12.5%;">
+          <span style="font-size:22px;color:#bfdbfe;font-weight:300;letter-spacing:0.03em;">
+            AI × GUI によるプレゼン作成プラットフォーム
+          </span>
+        </div>
+
+        <!-- テックタグ -->
+        <div class="gcb-element flex items-center gap-3"
+             data-grid-x="2" data-grid-y="20" data-grid-w="20" data-grid-h="2"
+             style="left:8.333%;top:83.333%;width:83.333%;height:8.333%;">
+          <span style="font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,0.4);border-radius:4px;padding:3px 10px;letter-spacing:0.1em;">WinUI 3</span>
+          <span style="font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,0.4);border-radius:4px;padding:3px 10px;letter-spacing:0.1em;">WebView2</span>
+          <span style="font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,0.4);border-radius:4px;padding:3px 10px;letter-spacing:0.1em;">Tailwind CSS</span>
+          <span style="font-size:11px;color:#a5b4fc;border:1px solid rgba(165,180,252,0.4);border-radius:4px;padding:3px 10px;letter-spacing:0.1em;">C# / .NET 8</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Slide 2 — コア機能
+         ═══════════════════════════════════════════════════════ -->
+    <section class="gcb-slide" data-index="1">
+      <div class="slide-root" style="background:#f8fafc;">
+
+        <!-- ヘッダーバー -->
+        <div class="gcb-element"
+             data-grid-x="0" data-grid-y="0" data-grid-w="24" data-grid-h="5"
+             style="left:0;top:0;width:100%;height:20.833%;
+                    background:linear-gradient(90deg,#1e3a6e,#2d4f8e);"></div>
+
+        <!-- ヘッダータイトル -->
+        <div class="gcb-element flex items-center"
+             data-grid-x="1" data-grid-y="1" data-grid-w="18" data-grid-h="3"
+             style="left:4.167%;top:4.167%;width:75%;height:12.5%;">
+          <span style="font-size:30px;font-weight:700;color:white;letter-spacing:-0.5px;">
+            コア機能
+          </span>
+        </div>
+
+        <!-- スライド番号（ヘッダー右） -->
+        <div class="gcb-element flex items-center justify-end"
+             data-grid-x="18" data-grid-y="1" data-grid-w="5" data-grid-h="3"
+             style="left:75%;top:4.167%;width:20.833%;height:12.5%;">
+          <span style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.05em;">02 / 03</span>
+        </div>
+
+        <!-- カード 1: グリッドシステム -->
+        <div class="gcb-element flex flex-col"
+             data-grid-x="1" data-grid-y="6" data-grid-w="7" data-grid-h="16"
+             style="left:4.167%;top:25%;width:29.167%;height:66.667%;
+                    background:white;border-radius:12px;padding:28px 24px;
+                    box-shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);">
+          <div style="width:48px;height:48px;border-radius:12px;background:#eff6ff;
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:24px;margin-bottom:16px;">📐</div>
+          <div style="font-size:17px;font-weight:700;color:#1e3a6e;margin-bottom:10px;">グリッドシステム</div>
+          <div style="font-size:13px;color:#64748b;line-height:1.65;">
+            24×24 の固定グリッドで配置を管理。
+            AI 生成と GUI 操作で常に位置ずれゼロを実現します。
+          </div>
+        </div>
+
+        <!-- カード 2: ブリッジ構造 -->
+        <div class="gcb-element flex flex-col"
+             data-grid-x="9" data-grid-y="6" data-grid-w="7" data-grid-h="16"
+             style="left:37.5%;top:25%;width:29.167%;height:66.667%;
+                    background:white;border-radius:12px;padding:28px 24px;
+                    box-shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);">
+          <div style="width:48px;height:48px;border-radius:12px;background:#f0fdf4;
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:24px;margin-bottom:16px;">🔗</div>
+          <div style="font-size:17px;font-weight:700;color:#1e3a6e;margin-bottom:10px;">ブリッジ構造</div>
+          <div style="font-size:13px;color:#64748b;line-height:1.65;">
+            HTML 属性と JSON マニフェストが常に同期。
+            AI・人間・プログラムの信頼できる唯一の情報源。
+          </div>
+        </div>
+
+        <!-- カード 3: 直感的な編集 -->
+        <div class="gcb-element flex flex-col"
+             data-grid-x="17" data-grid-y="6" data-grid-w="7" data-grid-h="16"
+             style="left:70.833%;top:25%;width:29.167%;height:66.667%;
+                    background:white;border-radius:12px;padding:28px 24px;
+                    box-shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);">
+          <div style="width:48px;height:48px;border-radius:12px;background:#fdf4ff;
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:24px;margin-bottom:16px;">✏️</div>
+          <div style="font-size:17px;font-weight:700;color:#1e3a6e;margin-bottom:10px;">直感的な編集</div>
+          <div style="font-size:13px;color:#64748b;line-height:1.65;">
+            ダブルクリックでテキスト編集、ドラッグで移動。
+            エンジニア以外でも AI 生成物を即座に微調整可能。
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Slide 3 — ワークフロー
+         ═══════════════════════════════════════════════════════ -->
+    <section class="gcb-slide" data-index="2">
+      <div class="slide-root" style="background:white;">
+
+        <!-- タイトル -->
+        <div class="gcb-element"
+             data-grid-x="2" data-grid-y="1" data-grid-w="20" data-grid-h="4"
+             style="left:8.333%;top:4.167%;width:83.333%;height:16.667%;
+                    display:flex;align-items:center;">
+          <span style="font-size:34px;font-weight:800;color:#1e3a6e;letter-spacing:-0.5px;">ワークフロー</span>
+        </div>
+
+        <!-- 区切り線 -->
+        <div class="gcb-element"
+             data-grid-x="2" data-grid-y="5" data-grid-w="20" data-grid-h="1"
+             style="left:8.333%;top:20.833%;width:83.333%;height:2px;background:#e2e8f0;"></div>
+
+        <!-- Step 1 -->
+        <div class="gcb-element flex flex-col items-center"
+             data-grid-x="1" data-grid-y="7" data-grid-w="5" data-grid-h="13"
+             style="left:4.167%;top:29.167%;width:20.833%;height:54.167%;
+                    background:#eff6ff;border-radius:14px;padding:20px 14px;
+                    text-align:center;">
+          <div style="font-size:36px;margin-bottom:12px;">🤖</div>
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:0.03em;">STEP 1</div>
+          <div style="font-size:15px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">AI に生成依頼</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.6;">
+            システムプロンプトに従い HTML / Tailwind CSS でスライドを生成
+          </div>
+        </div>
+
+        <!-- 矢印 1→2 -->
+        <div class="gcb-element flex items-center justify-center"
+             data-grid-x="6" data-grid-y="11" data-grid-w="2" data-grid-h="4"
+             style="left:25%;top:45.833%;width:8.333%;height:16.667%;">
+          <span style="font-size:28px;color:#94a3b8;">→</span>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="gcb-element flex flex-col items-center"
+             data-grid-x="8" data-grid-y="7" data-grid-w="5" data-grid-h="13"
+             style="left:33.333%;top:29.167%;width:20.833%;height:54.167%;
+                    background:#f0fdf4;border-radius:14px;padding:20px 14px;
+                    text-align:center;">
+          <div style="font-size:36px;margin-bottom:12px;">📋</div>
+          <div style="font-size:13px;font-weight:700;color:#16a34a;margin-bottom:8px;letter-spacing:0.03em;">STEP 2</div>
+          <div style="font-size:15px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">GCB に貼り付け</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.6;">
+            クリップボードから HTML を取り込み、即座にプレビュー
+          </div>
+        </div>
+
+        <!-- 矢印 2→3 -->
+        <div class="gcb-element flex items-center justify-center"
+             data-grid-x="13" data-grid-y="11" data-grid-w="2" data-grid-h="4"
+             style="left:54.167%;top:45.833%;width:8.333%;height:16.667%;">
+          <span style="font-size:28px;color:#94a3b8;">→</span>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="gcb-element flex flex-col items-center"
+             data-grid-x="15" data-grid-y="7" data-grid-w="5" data-grid-h="13"
+             style="left:62.5%;top:29.167%;width:20.833%;height:54.167%;
+                    background:#fdf4ff;border-radius:14px;padding:20px 14px;
+                    text-align:center;">
+          <div style="font-size:36px;margin-bottom:12px;">🖱️</div>
+          <div style="font-size:13px;font-weight:700;color:#9333ea;margin-bottom:8px;letter-spacing:0.03em;">STEP 3</div>
+          <div style="font-size:15px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">GUI で微調整</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.6;">
+            ドラッグ＆ドロップ・テキスト編集でレイアウトを整える
+          </div>
+        </div>
+
+        <!-- 矢印 3→4 -->
+        <div class="gcb-element flex items-center justify-center"
+             data-grid-x="20" data-grid-y="11" data-grid-w="2" data-grid-h="4"
+             style="left:83.333%;top:45.833%;width:8.333%;height:16.667%;">
+          <span style="font-size:28px;color:#94a3b8;">→</span>
+        </div>
+
+        <!-- フッター: 出力メモ -->
+        <div class="gcb-element flex items-center justify-center gap-8"
+             data-grid-x="2" data-grid-y="21" data-grid-w="20" data-grid-h="2"
+             style="left:8.333%;top:87.5%;width:83.333%;height:8.333%;">
+          <span style="font-size:12px;color:#94a3b8;">
+            📄 HTML / CSS のみ — JavaScript 不要のポータブル出力
+          </span>
+          <span style="font-size:12px;color:#94a3b8;">
+            🖨 PDF 一括印刷対応
+          </span>
+          <span style="font-size:12px;color:#94a3b8;">
+            ⛶ 全画面プレゼン対応
+          </span>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ナビゲーションゾーン -->
+  <div id="gcb-zone-prev" class="gcb-nav-zone"></div>
+  <div id="gcb-zone-next" class="gcb-nav-zone"></div>
+
+  <!-- コントロール -->
+  <div id="gcb-controls">
+    <button id="gcb-btn-fullscreen">⛶ 全画面</button>
+    <button id="gcb-btn-print">🖨 PDF印刷</button>
+  </div>
+
+  <!-- スライドカウンター -->
+  <div id="gcb-counter"></div>
+
+</div>
+
+<!-- プレゼンテーションスクリプト -->
+<script id="gcb-present">(function () {
+  'use strict';
+
+  var currentIndex = 0;
+
+  function getSlides() { return Array.from(document.querySelectorAll('.gcb-slide')); }
+  function isEditing() { return !!document.getElementById('gcb-presentation')?.classList.contains('gcb-editing'); }
+
+  function goTo(index) {
+    if (isEditing()) return;
+    var slides = getSlides();
+    if (index < 0 || index >= slides.length) return;
+    slides[currentIndex].classList.remove('active');
+    currentIndex = index;
+    slides[currentIndex].classList.add('active');
+    var counter = document.getElementById('gcb-counter');
+    if (counter) counter.textContent = (currentIndex + 1) + ' / ' + slides.length;
+  }
+
+  window.GCBPresent = {
+    goTo: goTo,
+    next: function () { goTo(currentIndex + 1); },
+    prev: function () { goTo(currentIndex - 1); },
+    toggleFullscreen: function () {
+      if (!document.fullscreenElement) {
+        document.getElementById('gcb-presentation')?.requestFullscreen();
+      } else {
+        document.exitFullscreen?.();
+      }
+    },
+    print: function () { window.print(); },
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (isEditing()) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); GCBPresent.next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); GCBPresent.prev(); }
+  });
+
+  document.getElementById('gcb-zone-prev')?.addEventListener('click', GCBPresent.prev);
+  document.getElementById('gcb-zone-next')?.addEventListener('click', GCBPresent.next);
+  document.getElementById('gcb-btn-fullscreen')?.addEventListener('click', GCBPresent.toggleFullscreen);
+  document.getElementById('gcb-btn-print')?.addEventListener('click', GCBPresent.print);
+
+  var counter = document.getElementById('gcb-counter');
+  if (counter) counter.textContent = '1 / ' + getSlides().length;
+})();
+</script>
+
+<!-- GCB_MANIFEST_START -->
+<script type="application/json" id="gcb-manifest">
+{
+  "version": "1.0",
+  "aspectRatio": "4:3",
+  "slides": [
+    {
+      "id": "slide-1",
+      "elements": [
+        { "id": "slide1-accent",    "type": "shape", "gridX": 0,  "gridY": 0,  "gridW": 1,  "gridH": 24, "content": "", "classes": "" },
+        { "id": "slide1-title",     "type": "text",  "gridX": 2,  "gridY": 5,  "gridW": 20, "gridH": 7,  "content": "GridCanvas\nBridge", "classes": "" },
+        { "id": "slide1-divider",   "type": "shape", "gridX": 2,  "gridY": 13, "gridW": 9,  "gridH": 1,  "content": "", "classes": "" },
+        { "id": "slide1-subtitle",  "type": "text",  "gridX": 2,  "gridY": 14, "gridW": 20, "gridH": 3,  "content": "AI × GUI によるプレゼン作成プラットフォーム", "classes": "" },
+        { "id": "slide1-tags",      "type": "text",  "gridX": 2,  "gridY": 20, "gridW": 20, "gridH": 2,  "content": "WinUI 3 / WebView2 / Tailwind CSS / C# / .NET 8", "classes": "" }
+      ]
+    },
+    {
+      "id": "slide-2",
+      "elements": [
+        { "id": "slide2-header",    "type": "shape", "gridX": 0,  "gridY": 0,  "gridW": 24, "gridH": 5,  "content": "", "classes": "" },
+        { "id": "slide2-title",     "type": "text",  "gridX": 1,  "gridY": 1,  "gridW": 18, "gridH": 3,  "content": "コア機能", "classes": "" },
+        { "id": "slide2-card1",     "type": "text",  "gridX": 1,  "gridY": 6,  "gridW": 7,  "gridH": 16, "content": "グリッドシステム", "classes": "" },
+        { "id": "slide2-card2",     "type": "text",  "gridX": 9,  "gridY": 6,  "gridW": 7,  "gridH": 16, "content": "ブリッジ構造", "classes": "" },
+        { "id": "slide2-card3",     "type": "text",  "gridX": 17, "gridY": 6,  "gridW": 7,  "gridH": 16, "content": "直感的な編集", "classes": "" }
+      ]
+    },
+    {
+      "id": "slide-3",
+      "elements": [
+        { "id": "slide3-title",     "type": "text",  "gridX": 2,  "gridY": 1,  "gridW": 20, "gridH": 4,  "content": "ワークフロー", "classes": "" },
+        { "id": "slide3-step1",     "type": "text",  "gridX": 1,  "gridY": 7,  "gridW": 5,  "gridH": 13, "content": "AI に生成依頼", "classes": "" },
+        { "id": "slide3-step2",     "type": "text",  "gridX": 8,  "gridY": 7,  "gridW": 5,  "gridH": 13, "content": "GCB に貼り付け", "classes": "" },
+        { "id": "slide3-step3",     "type": "text",  "gridX": 15, "gridY": 7,  "gridW": 5,  "gridH": 13, "content": "GUI で微調整", "classes": "" },
+        { "id": "slide3-footer",    "type": "text",  "gridX": 2,  "gridY": 21, "gridW": 20, "gridH": 2,  "content": "HTML/CSS のみ — ポータブル出力 / PDF 印刷 / 全画面対応", "classes": "" }
+      ]
+    }
+  ]
+}
+</script>
+<!-- GCB_MANIFEST_END -->
+</body>
+</html>
