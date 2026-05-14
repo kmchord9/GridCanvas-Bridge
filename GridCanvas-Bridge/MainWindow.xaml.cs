@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
     private readonly PresentationViewModel _vm = new();
     private string _templateHtml16x9 = string.Empty;
     private string _templateHtml4x3 = string.Empty;
+    private string _bridgeJs = string.Empty;
     private string _currentFilePath = string.Empty;
     private bool _isUpdatingProperties = false;
 
@@ -35,6 +36,7 @@ public sealed partial class MainWindow : Window
 
         _templateHtml16x9 = await ReadAssetAsync("Assets/Templates/slide-16x9.html");
         _templateHtml4x3 = await ReadAssetAsync("Assets/Templates/slide-4x3.html");
+        _bridgeJs = await ReadAssetAsync("Assets/Scripts/gcb-bridge.js");
 
         // デフォルトで 16:9 テンプレートをロード
         _vm.LoadFromHtml(_templateHtml16x9);
@@ -55,9 +57,23 @@ public sealed partial class MainWindow : Window
     {
         var template = _vm.Presentation.AspectRatio == "4:3" ? _templateHtml4x3 : _templateHtml16x9;
         var html = _vm.BuildHtmlForCurrentSlide(template);
+
+        // NavigateToString は相対パスを解決できないため bridge JS をインライン展開
+        html = html.Replace(
+            "<script src=\"../Scripts/gcb-bridge.js\"></script>",
+            $"<script id=\"gcb-bridge\">\n{_bridgeJs}\n</script>");
+
+        var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
+        void OnCompleted(CoreWebView2 s, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            SlideWebView.CoreWebView2.NavigationCompleted -= OnCompleted;
+            tcs.TrySetResult(true);
+        }
+        SlideWebView.CoreWebView2.NavigationCompleted += OnCompleted;
         SlideWebView.CoreWebView2.NavigateToString(html);
-        await Task.Delay(100); // DOM レンダリング待機
-        await SlideWebView.CoreWebView2.ExecuteScriptAsync("if(window.GCB) GCB.enableEditMode();");
+        await tcs.Task;
+
+        await SlideWebView.CoreWebView2.ExecuteScriptAsync("GCB.enableEditMode();");
     }
 
     // ── JS → C# メッセージ受信 ───────────────────────────
@@ -257,12 +273,13 @@ public sealed partial class MainWindow : Window
 
     // ── ヘルパー ─────────────────────────────────────────
 
-    // gcb-bridge.js を除去してポータブル HTML に変換
+    // gcb-bridge インライン script を除去してポータブル HTML に変換
     private static string BuildPortableHtml(string html) =>
         System.Text.RegularExpressions.Regex.Replace(
             html,
-            @"<script src=""[^""]*gcb-bridge\.js""></script>",
-            string.Empty);
+            @"<script id=""gcb-bridge"">.*?</script>",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.Singleline);
 
     private async Task ShowInfoDialog(string title, string content)
     {
