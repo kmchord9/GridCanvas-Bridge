@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using GridCanvas_Bridge.ViewModels;
 using Microsoft.UI.Xaml;
@@ -20,6 +21,7 @@ public sealed partial class MainWindow : Window
     private string _templateHtml4x3 = string.Empty;
     private string _bridgeJs = string.Empty;
     private string _currentFilePath = string.Empty;
+    private string _loadedHtml = string.Empty;   // 外部ファイルまたはクリップボードから読み込んだ生 HTML
     private bool _isUpdatingProperties = false;
 
     public MainWindow()
@@ -38,7 +40,6 @@ public sealed partial class MainWindow : Window
         _templateHtml4x3 = await ReadAssetAsync("Assets/Templates/slide-4x3.html");
         _bridgeJs = await ReadAssetAsync("Assets/Scripts/gcb-bridge.js");
 
-        // デフォルトで 16:9 テンプレートをロード
         _vm.LoadFromHtml(_templateHtml16x9);
         RefreshSlideList();
         await NavigateToCurrentSlide();
@@ -53,17 +54,37 @@ public sealed partial class MainWindow : Window
 
     // ── WebView2 ナビゲーション ──────────────────────────
 
+    /// <summary>
+    /// 外部 HTML が読み込まれている場合は GCBPresent.goTo() でスライドを切り替えるだけ。
+    /// テンプレートモードの場合はテンプレートを再レンダリングする。
+    /// </summary>
     private async Task NavigateToCurrentSlide()
     {
-        var template = _vm.Presentation.AspectRatio == "4:3" ? _templateHtml4x3 : _templateHtml16x9;
-        var html = _vm.BuildHtmlForCurrentSlide(template);
+        if (!string.IsNullOrEmpty(_loadedHtml))
+        {
+            // 既に WebView2 に正しい HTML が表示されているので JS だけ呼ぶ
+            await SlideWebView.CoreWebView2.ExecuteScriptAsync(
+                $"if(window.GCBPresent) GCBPresent.goTo({_vm.CurrentSlideIndex});" +
+                 "if(window.GCB) GCB.enableEditMode();");
+            return;
+        }
 
+        var template = _vm.Presentation.AspectRatio == "4:3" ? _templateHtml4x3 : _templateHtml16x9;
+        await NavigateToHtml(_vm.BuildHtmlForCurrentSlide(template));
+    }
+
+    /// <summary>
+    /// HTML 文字列を WebView2 に表示する。bridge JS をインライン展開し、
+    /// NavigationCompleted 後に enableEditMode() を呼ぶ。
+    /// </summary>
+    private async Task NavigateToHtml(string html)
+    {
         // NavigateToString は相対パスを解決できないため bridge JS をインライン展開
         html = html.Replace(
             "<script src=\"../Scripts/gcb-bridge.js\"></script>",
             $"<script id=\"gcb-bridge\">\n{_bridgeJs}\n</script>");
 
-        var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<bool>();
         void OnCompleted(CoreWebView2 s, CoreWebView2NavigationCompletedEventArgs e)
         {
             SlideWebView.CoreWebView2.NavigationCompleted -= OnCompleted;
@@ -73,7 +94,7 @@ public sealed partial class MainWindow : Window
         SlideWebView.CoreWebView2.NavigateToString(html);
         await tcs.Task;
 
-        await SlideWebView.CoreWebView2.ExecuteScriptAsync("GCB.enableEditMode();");
+        await SlideWebView.CoreWebView2.ExecuteScriptAsync("if(window.GCB) GCB.enableEditMode();");
     }
 
     // ── JS → C# メッセージ受信 ───────────────────────────
@@ -203,9 +224,7 @@ public sealed partial class MainWindow : Window
 
         var html = await FileIO.ReadTextAsync(file);
         _currentFilePath = file.Path;
-        _vm.LoadFromHtml(html);
-        RefreshSlideList();
-        await NavigateToCurrentSlide();
+        await LoadExternalHtml(html);
     }
 
     private async void OnSaveFile(object sender, RoutedEventArgs e)
@@ -222,9 +241,14 @@ public sealed partial class MainWindow : Window
             _currentFilePath = file.Path;
         }
 
-        var template = _vm.Presentation.AspectRatio == "4:3" ? _templateHtml4x3 : _templateHtml16x9;
-        var html = BuildPortableHtml(_vm.BuildHtmlForCurrentSlide(template));
-        await File.WriteAllTextAsync(_currentFilePath, html);
+        // 外部 HTML を開いていれば、そのマニフェストを更新して保存
+        // テンプレートモードならテンプレートから生成
+        var source = string.IsNullOrEmpty(_loadedHtml)
+            ? _vm.BuildHtmlForCurrentSlide(
+                _vm.Presentation.AspectRatio == "4:3" ? _templateHtml4x3 : _templateHtml16x9)
+            : _vm.BuildHtmlForCurrentSlide(_loadedHtml);
+
+        await File.WriteAllTextAsync(_currentFilePath, BuildPortableHtml(source));
     }
 
     // ── クリップボード貼り付け ─────────────────────────
@@ -241,10 +265,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        _vm.LoadFromHtml(html);
         _currentFilePath = string.Empty;
-        RefreshSlideList();
-        await NavigateToCurrentSlide();
+        await LoadExternalHtml(html);
     }
 
     // ── 縦横比変更 ──────────────────────────────────────
@@ -254,6 +276,9 @@ public sealed partial class MainWindow : Window
         var ratio = AspectRatioCombo.SelectedIndex == 0 ? "16:9" : "4:3";
         if (_vm.Presentation.AspectRatio == ratio) return;
 
+        // テンプレートモードに戻す
+        _loadedHtml = string.Empty;
+        _currentFilePath = string.Empty;
         _vm.Presentation = _vm.Presentation with { AspectRatio = ratio };
         await NavigateToCurrentSlide();
     }
@@ -262,8 +287,9 @@ public sealed partial class MainWindow : Window
 
     private async void OnFullScreen(object sender, RoutedEventArgs e)
     {
+        // 外部 HTML は #gcb-presentation、テンプレートは #slide-root を全画面化
         await SlideWebView.CoreWebView2.ExecuteScriptAsync(
-            "document.getElementById('slide-root').requestFullscreen?.();");
+            "(document.getElementById('gcb-presentation') ?? document.getElementById('slide-root'))?.requestFullscreen?.();");
     }
 
     private async void OnPrint(object sender, RoutedEventArgs e)
@@ -273,13 +299,39 @@ public sealed partial class MainWindow : Window
 
     // ── ヘルパー ─────────────────────────────────────────
 
-    // gcb-bridge インライン script を除去してポータブル HTML に変換
-    private static string BuildPortableHtml(string html) =>
-        System.Text.RegularExpressions.Regex.Replace(
-            html,
+    /// <summary>
+    /// 外部 HTML (ファイル / クリップボード) を読み込み、WebView2 に表示する。
+    /// </summary>
+    private async Task LoadExternalHtml(string html)
+    {
+        _loadedHtml = html;
+        _vm.LoadFromHtml(html);
+        _vm.CurrentSlideIndex = 0;
+        RefreshSlideList();
+
+        // 実際の HTML をそのまま表示（テンプレートは使わない）
+        await NavigateToHtml(html);
+
+        // 読み込み後、スライド 0 をアクティブにする
+        await SlideWebView.CoreWebView2.ExecuteScriptAsync(
+            "if(window.GCBPresent) GCBPresent.goTo(0);");
+    }
+
+    /// <summary>
+    /// bridge JS インライン script とポータブル出力に不要な記述を除去する。
+    /// </summary>
+    private static string BuildPortableHtml(string html)
+    {
+        // インライン展開された bridge script を除去
+        html = Regex.Replace(html,
             @"<script id=""gcb-bridge"">.*?</script>",
-            string.Empty,
-            System.Text.RegularExpressions.RegexOptions.Singleline);
+            string.Empty, RegexOptions.Singleline);
+        // src 参照の bridge script タグも念のため除去
+        html = Regex.Replace(html,
+            @"<script src=""[^""]*gcb-bridge\.js""></script>",
+            string.Empty);
+        return html;
+    }
 
     private async Task ShowInfoDialog(string title, string content)
     {
